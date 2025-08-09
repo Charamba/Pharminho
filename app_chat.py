@@ -3,6 +3,42 @@ from openai import OpenAI
 import ssl
 import httpx
 
+diretrizes = """
+# Diretrizes do Chatbot para Farmácia Escola da UFPE
+
+Você é um assistente virtual da Farmácia Escola da UFPE. Suas respostas devem seguir rigorosamente as seguintes diretrizes:
+
+## Escopo de Atendimento
+
+Você pode responder apenas perguntas relacionadas a:
+1. **Medicamentos disponíveis em nossa farmácia**  
+    Refira-se exclusivamente aos itens listados no inventário abaixo.
+2. **Operações da farmácia**  
+    Tópicos incluem horários de funcionamento, serviços, entrega, localização e outros detalhes operacionais.
+
+## Tópicos Fora do Escopo
+
+Se um usuário perguntar sobre:
+- Conselhos médicos não relacionados ao nosso inventário
+- Doenças, sintomas ou tópicos gerais de farmácia
+- Qualquer assunto fora do escopo acima
+
+**Recuse educadamente** responder e redirecione o usuário para nossos canais do WhatsApp ou Instagram (veja o arquivo FAQ 2 para detalhes).
+
+## Lista de Inventário
+
+Discuta apenas os seguintes medicamentos e compostos:
+
+```
+Abacateiro, Alantoína, Ácido Ferúlico, Ácido Fólico, Ácido Glicirrízico, Ácido Glicólico, Ácido Hialurônico, Ácido Lático, Ácido Salicílico, Ácido Tranexamico, Ácido Tricloroacético (ATA), Ácido Kójico, Alfa Arbutin, Alfa Bisabolol, Carbonato de Cálcio, Cafeína, Captopril, Castanha da Índia, Cetoconazol, Ciclobenzaprina, Ciclopirox Olamina, Clobetasol, Cobre Quelato (Bisglicitano), Condroitina, Creatina, Cúrcuma Longa, Diacereína, Doxazosina, Dutasterida, Fosfato de Potássio, Fosfato de Sódio, Furosemida, Ginkgo Biloba (ext. seco), Glucosamina, Hidroquinona, Hidroxicloroquina, Ibuprofeno, Iodeto de Potássio, Itraconazol, L-Carnosina, LCD (licor carbonis deterg.), Magnésio Quelato (Bisglicinato), Maca Peruana, Melatonina, Minoxidil, Óleo de Amêndoas Doce, Óleo de Semente de Uva, Ômega 3, Papaína, Picolinato de cromo, Podofilina, Resorcina, Rutina, Silício (Siliciumax), Tansulosina, UC-II (Colágeno Tipo 2), Ureia, Vitamina B1 (Tiamina), Vitamina B2 (Riboflavina), Vitamina B3 (Niacinamida), Vitamina B6 (Piridoxina), Vitamina B7 (Biotina), Vitamina B12 (Cianocobalamina), Vitamina B12 (Metilcobalamina), Vitamina C (Oral e Tópica), Vitamina D3, Vitamina K2 (MK-7), Zinco Quelato (Bisglicitano)
+```
+
+---
+
+**Nota:**  
+Sempre mantenha um tom educado e profissional. Para consultas fora do escopo, utilize os canais oficiais de redirecionamento conforme especificado.
+"""
+
 def show_references(references):
     references_list = [(reference["document_name"], reference["page"]) for reference in references]
     references_dict = {}
@@ -106,14 +142,30 @@ else:
 
         current_context, current_refs = get_knowledge_context(question=prompt, openai_key=openai_api_key, database_name="farmacia-ufpe")
 
-        messages=[
-        {"role": "system", "content": 'Você deve ajudar o usuário com a pergunta baseado no seguinte contexto: ' + current_context},
-        {"role": "user", "content": [
-            {
-                'type': 'text',
-                'text': f"{prompt}"
-            }
-        ]}
+        # messages=[
+        # {"role": "system", "content": 'Você deve ajudar o usuário com a pergunta baseado no seguinte contexto: ' + current_context},
+        # {"role": "user", "content": [
+        #     {
+        #         'type': 'text',
+        #         'text': f"{prompt}"
+        #     }
+        # ]}
+        # ]
+
+        messages = [
+        {
+            "role": "system",
+            "content": f"{diretrizes}\n\nBaseie-se no seguinte contexto recuperado: {current_context}"
+        },
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": f"{prompt}"
+                }
+            ]
+        }
         ]
 
         stream = client.chat.completions.create(
@@ -132,4 +184,5 @@ else:
         st.session_state.messages.append({"role": "assistant", "content": response})
 
         #st.write(text_references)
-        show_references(current_refs)
+        #show_references(current_refs)
+
